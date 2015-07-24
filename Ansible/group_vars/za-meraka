@@ -1,23 +1,42 @@
 ---
 yaim_path: /opt/glite/yaim
+yum_args: '--exclude="voms-clients-cpp"'
 bdii_port: 2170
 vo_sw_dir: /opt/exp_soft
 cvmfs_repos:
-  - sagrid.
+  - apprepo.sagrid.ac.za
   - atlas
 vos:
   - dteam
   - ops
+  - sagrid
   - sagrid.ac.za
   - eumed
-#  - africacert
+  - atlas
 queues:
+  - atlas
   - dteam
   - ops
   - sagrid.ac.za
   - eumed
-#  - cert
-#  - shared
+# you can set VO-level queue tuning here
+qmgr_queues:
+  - name: dteam
+    resources_max.cput: '24:00:00'
+    max_wall_time: '30:00:00'
+  - name: ops
+    resources_max.cput: '0:15:00'
+    max_wall_time: '0:30:00'
+  - name: sagrid.ac.za
+    resources_max.cput: '72:00:00'
+    max_wall_time: '72:00:00'
+  - name: eumed
+    resources_max.cput: '72:00:00'
+    max_wall_time: '72:00:00'
+  - name: atlas
+    resources_max.cput: '72:00:00'
+    max_wall_time: '72:00:00'
+
 # See https://wiki.egi.eu/wiki/MAN01_How_to_publish_Site_Information
 # use the site name as registered in GOCDB (use the same case)
 site_name: ZA-MERAKA
@@ -35,27 +54,32 @@ site_location: "Pretoria, South Africa"
 site_website: "http://www.csir.co.za/meraka"
 site_domain: c4.csir.co.za
 
-# passwords
-mysql_pass: '##'
-mysql_admin_pass: '##'
-apel_db_password: '##'
-
 # services at the site
 bdii_host: top-bdii.c4.csir.co.za
 apel_mysql_host: ce01-node001.c4.csir.co.za
 px_host: myproxy.cern.ch
 #wms_host: wms.hellasgrid.gr
 # check GOCDB for relevant services in the AfricaArabia https://goc.egi.eu/portal/index.php?Page_Type=Service_Group&id=926
-wms_host: wms.c4.csir.co.za 
+wms_host: "wms.c4.csir.co.za"
+is_both_wms_and_lb: true
+lb_proxy_type: both
 argus_status: yes
 argus_host: argus.c4.csir.co.za
 pap_admin_dn: "'/C=IT/O=INFN/OU=Personal Certificate/L=ZA-MERAKA/CN=Bruce Becker'"
-
+user_home_prefix: /gridhome
 # TODO - new LFC has to be deployed here at Meraka | BB 10/13
 #lfc_host: devslngrd002.uct.ac.za
 lfc_host:
 
 ce_host: ce01-node001.c4.csir.co.za
+#  MPI capabilities
+mpich2_enabled: true
+openmpi_enabled: true
+mpich2_version: 1.2.1
+openmpi_version: 1.5.4
+# are the home directories shared over nfs ?
+mpi_shared_home: no
+mpi_host_based_auth: yes
 # Replace the following specs with your own
 ce_cpu_model: Opteron
 ce_cpu_vendor: AMD
@@ -67,7 +91,7 @@ ce_os_arch: x86_64
 ce_minphysmem: 2048
 ce_minvirtmem: 6144
 ce_physcpu: 1
-ce_logcpu: 
+ce_logcpu:
 ce_smpsize: 1
 ce_si00: 2105
 ce_sf00: 2601
@@ -108,6 +132,8 @@ bdii_regions:
   endpoint: ldap://fts.c4.csir.co.za:2170/mds-vo-name=resource,o=grid
 - name: ARGUS
   endpoint: ldap://argus.c4.csir.co.za:2170/mds-vo-name=resource,o=grid
+- name: WMS
+  endpoint: ldap://wms.c4.csir.co.za:2170/mds-vo-name=resource,o=grid
 
 se_list:
   - se01.localdomain
