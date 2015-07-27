@@ -10,6 +10,23 @@
   tasks:
     - setup:
   gather_facts: true
+  post_tasks:
+  - name: Announce the play via Slack
+    action:
+      module: slack
+      domain: africa-arabia-roc.slack.com
+      token: "{{ slack_token }}"
+      msg: "About to run the worker-nodes play on {{ inventory_hostname }} at {{ site_name }}"
+      channel: "#devopssite"
+      username: "Ansible on {{ inventory_hostname }}"
+      #icon_url: "http://www.example.com/some-image-file.png"
+      link_names: 1
+      parse: 'full'
+    tags:
+      - slack
+  vars_files:
+    - group_vars/passwords-{{ site_name }}.yml
+
 
 - hosts: cluster-head-nodes
   name: Look up local facts and create key vars file
@@ -18,11 +35,15 @@
   - setup:
   - debug: msg="key is {{ ansible_ssh_host_key_rsa_public }} "
   - local_action: lineinfile dest=roles/worker-node/vars/public_keys.yml line="public_keys{{':'}} ssh-rsa {{ ansible_ssh_host_key_rsa_public }} ansible@{{ ansible_hostname }}" state=present create=yes
+  - local_action: "file path={{ lookup('env','HOME')}} owner=ansible group=ansible mode=0600"
+
 - hosts: worker-nodes
   name: Create .shosts file for host-based authentication later
   user: root
   tasks:
   - template: src=roles/worker-node/templates/shosts.j2 dest=/root/.shosts mode=0444
+  - file: "path={{ lookup('env',HOME) }}/munge.key owner=ansible group=ansible mode=0600"
+
 
 - hosts: worker-nodes
   name: Prepare worker nodes for installation
@@ -34,6 +55,20 @@
     - roles/common/vars/distros/{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml
     - roles/common/vars/middleware/IGTF.yml
     - group_vars/passwords-{{ site_name }}.yml
+  post_tasks:
+    - name: Announce the play via Slack
+      action:
+        module: slack
+        domain: africa-arabia-roc.slack.com
+        token: "{{ slack_token }}"
+        msg: "WN play : Applied common and certs role to  {{ inventory_hostname }} at {{ site_name }}"
+        channel: "#devopssite"
+        username: "Ansible on {{ inventory_hostname }}"
+        #icon_url: "http://www.example.com/some-image-file.png"
+        link_names: 1
+        parse: 'full'
+      tags:
+        - slack
 
 - hosts: worker-nodes
   name: Apply Vanilla WN role
@@ -54,24 +89,18 @@
     - roles/common/vars/middleware/IGTF.yml
     - group_vars/passwords-{{ site_name }}.yml
 
-- hosts: cluster-head-nodes
-  name: create munge key
-  sudo: true
-  tasks:
-  - name: Create munge key
-    command: /usr/sbin/create-munge-key creates=/etc/munge/munge.key mode=0644 owner=munge group=munge
-
 - hosts: worker-nodes
   name: Munge to WN
   tasks:
   - name: Copy Munge key to the worker nodes
     sudo: true
     copy:
-      src: /etc/munge/munge.key
+      src: "{{ lookup('env','HOME')}}/munge.key"
       dest: /etc/munge/munge.key
       mode: 0600
       owner: munge
       group: munge
+      delegate_to: localhost
 
 - hosts: worker-nodes
   name: configure middleware with yaim
